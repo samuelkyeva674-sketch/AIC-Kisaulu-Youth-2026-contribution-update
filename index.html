@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AIC KISAULU YOUTH CONTRIBUTIONS</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+padding:20px;
+}
+
+h2{
+text-align:center;
+}
+
+button{
+padding:8px 14px;
+margin:5px;
+cursor:pointer;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:10px;
+}
+
+th,td{
+border:1px solid black;
+padding:8px;
+text-align:center;
+}
+
+th{
+background:#f2f2f2;
+}
+
+td[contenteditable="true"]{
+background:#fffbe6;
+}
+
+.red{
+color:red;
+font-weight:bold;
+}
+
+.green{
+color:green;
+font-weight:bold;
+}
+
+tfoot{
+font-weight:bold;
+background:#e8e8e8;
+}
+
+.deleteBtn{
+background:red;
+color:white;
+border:none;
+padding:5px 10px;
+cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<h2>
+AIC KISAULU YOUTH CONTRIBUTIONS<br>
+DEADLINE JUNE<br>
+MPESA NUMBER: <b>0792122490</b>
+</h2>
+
+<button onclick="addMember()">➕ Add Member</button>
+<button onclick="exportExcel()">📊 Export Excel</button>
+<button onclick="exportPDF()">📄 Export PDF</button>
+
+<table id="contributionTable">
+
+<thead>
+<tr>
+<th>Name</th>
+<th>Amount Pledged (KES)</th>
+<th>Amount Paid (KES)</th>
+<th>Balance (KES)</th>
+<th>Delete</th>
+</tr>
+</thead>
+
+<tbody></tbody>
+
+<tfoot>
+<tr>
+<td>Total</td>
+<td id="totalPledged">KES 0</td>
+<td id="totalPaid">KES 0</td>
+<td id="totalBalance">KES 0</td>
+<td></td>
+</tr>
+</tfoot>
+
+</table>
+
+<script>
+
+function addMember(name="",pledged="",paid=""){
+
+const tbody=document.querySelector("#contributionTable tbody")
+
+const row=document.createElement("tr")
+
+row.innerHTML=`
+<td contenteditable="true">${name}</td>
+<td contenteditable="true" oninput="saveAndCalculate()">${pledged}</td>
+<td contenteditable="true" oninput="saveAndCalculate()">${paid}</td>
+<td></td>
+<td><button class="deleteBtn" onclick="deleteRow(this)">Delete</button></td>
+`
+
+tbody.appendChild(row)
+
+saveAndCalculate()
+
+}
+
+function deleteRow(btn){
+
+btn.parentElement.parentElement.remove()
+
+saveAndCalculate()
+
+}
+
+function saveAndCalculate(){
+
+const table=document.getElementById("contributionTable")
+
+let totalPledged=0
+let totalPaid=0
+let totalBalance=0
+
+const data=[]
+
+for(let i=1;i<table.rows.length-1;i++){
+
+const name=table.rows[i].cells[0].innerText
+
+const pledged=parseFloat(table.rows[i].cells[1].innerText)||0
+const paid=parseFloat(table.rows[i].cells[2].innerText)||0
+
+const balance=pledged-paid
+
+const balanceCell=table.rows[i].cells[3]
+
+balanceCell.innerText="KES "+balance
+
+balanceCell.classList.remove("red","green")
+
+if(balance==0){
+balanceCell.classList.add("green")
+}else{
+balanceCell.classList.add("red")
+}
+
+totalPledged+=pledged
+totalPaid+=paid
+totalBalance+=balance
+
+data.push({name,pledged,paid})
+
+}
+
+document.getElementById("totalPledged").innerText="KES "+totalPledged
+document.getElementById("totalPaid").innerText="KES "+totalPaid
+document.getElementById("totalBalance").innerText="KES "+totalBalance
+
+localStorage.setItem("aicKisauluContributions",JSON.stringify(data))
+
+}
+
+function loadData(){
+
+const saved=localStorage.getItem("aicKisauluContributions")
+
+if(saved){
+
+const data=JSON.parse(saved)
+
+data.forEach(member=>{
+addMember(member.name,member.pledged,member.paid)
+})
+
+}else{
+
+addMember()
+
+}
+
+}
+
+function exportExcel(){
+
+let table=document.getElementById("contributionTable").outerHTML
+
+let url='data:application/vnd.ms-excel,'+encodeURIComponent(table)
+
+let link=document.createElement("a")
+
+link.href=url
+link.download="AIC_Kisaulu_Contributions.xls"
+
+link.click()
+
+}
+
+function exportPDF(){
+
+const {jsPDF}=window.jspdf
+
+const doc=new jsPDF()
+
+let rows=[]
+
+const table=document.getElementById("contributionTable")
+
+for(let i=1;i<table.rows.length-1;i++){
+
+let name=table.rows[i].cells[0].innerText
+let pledged=table.rows[i].cells[1].innerText
+let paid=table.rows[i].cells[2].innerText
+let balance=table.rows[i].cells[3].innerText
+
+rows.push([name,pledged,paid,balance])
+
+}
+
+doc.text("AIC KISAULU YOUTH CONTRIBUTIONS",20,20)
+
+let y=40
+
+rows.forEach(r=>{
+doc.text(r.join(" | "),20,y)
+y+=10
+})
+
+doc.save("AIC_Kisaulu_Contributions.pdf")
+
+}
+
+loadData()
+
+</script>
+
+</body>
+</html>
